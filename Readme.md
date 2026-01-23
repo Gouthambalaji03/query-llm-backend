@@ -24,8 +24,8 @@ RESTful API backend:
 - **Node.js** - JavaScript runtime
 - **TypeScript** - Type-safe development
 - **Express** - Web application framework
-- **PostgreSQL** - Relational database
-- **Prisma** - Next-generation ORM
+- **MongoDB** - NoSQL database
+- **Mongoose** - Database ORM
 - **Firebase Auth** - Authentication service
 - **dotenv** - Environment variable management
 - **axios** - HTTP client
@@ -37,8 +37,8 @@ Intelligent query processing:
 - **Node.js** - JavaScript runtime
 - **TypeScript** - Type-safe development
 - **Express** - Web application framework
-- **PostgreSQL** - Relational database
-- **Prisma** - Database ORM
+- **MongoDB** - NoSQL database
+- **Mongoose** - Database ORM
 - **Vercel AI SDK** - AI integration toolkit
 - **DB Query Tool** - Custom database querying capabilities
 

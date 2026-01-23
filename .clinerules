@@ -1,0 +1,133 @@
+# Query LLM Backend - Claude Rules
+
+## Project Context
+This is a Node.js/Express TypeScript API server using MongoDB, Firebase Auth, and Zod validation.
+
+## Critical Conventions
+
+### snake_case Everywhere
+- **Files**: `user_controller.ts`, `auth_middleware.ts`
+- **Variables**: `user_data`, `is_authenticated`, `token_payload`
+- **Functions**: `get_user_by_id()`, `validate_request()`, `send_response()`
+- **Types/Interfaces**: `authenticated_request`, `api_response`, `user_document`
+- **Database fields**: `firebase_uid`, `created_at`, `updated_at`
+- **Constants**: `MAX_PAGE_SIZE`, `DEFAULT_TIMEOUT`
+
+### Layer Responsibilities
+| Layer | Responsibility |
+|-------|---------------|
+| Routes | Define endpoints, apply middleware |
+| Controllers | Handle HTTP, delegate to services |
+| Services | Business logic, database operations |
+| Models | Schema definition, data shape |
+| Schemas | Zod input validation |
+| Middlewares | Auth, validation, error handling |
+
+## Standard Patterns
+
+### New Endpoint Checklist
+1. Add Zod schema in `src/schemas/`
+2. Add service function in `src/services/`
+3. Add controller function in `src/controllers/`
+4. Add route with `validate()` and `auth_middleware` in `src/routes/`
+
+### Zod Validation Template
+```typescript
+export const {action}_{entity}_schema = z.object({
+  body: z.object({ /* fields */ }),
+  params: z.object({ /* url params */ }),
+  query: z.object({ /* query params */ }),
+});
+```
+
+### Controller Template
+```typescript
+export const {action}_{entity} = async (
+  req: authenticated_request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await {entity}_service.{action}(/* params */);
+    send_success(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+### Service Template
+```typescript
+export const {action}_{entity} = async (
+  /* params */
+): Promise<{entity}_document> => {
+  // Validate business rules
+  // Perform database operation
+  // Return result or throw api_error
+};
+```
+
+### Route Template
+```typescript
+router.{method}(
+  '/{path}',
+  auth_middleware,
+  validate({action}_{entity}_schema),
+  {entity}_controller.{action}_{entity}
+);
+```
+
+## Error Handling
+
+Use `api_error` static methods:
+- `api_error.bad_request(message, details?)` - 400
+- `api_error.unauthorized(message?)` - 401
+- `api_error.forbidden(message?)` - 403
+- `api_error.not_found(message?)` - 404
+- `api_error.conflict(message, details?)` - 409
+- `api_error.validation_error(message, details?)` - 422
+- `api_error.internal_error(message?)` - 500
+
+## API Response Helpers
+
+```typescript
+send_success(res, data, message?, status_code?)  // Default 200
+send_created(res, data, message?)                // 201
+send_no_content(res)                             // 204
+send_error(res, code, message, status_code, details?)
+```
+
+## Database Conventions
+
+### Mongoose Schema
+```typescript
+const {entity}_schema = new Schema<{entity}_document>(
+  {
+    field_name: { type: String, required: true },
+  },
+  {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    toJSON: { transform: (_doc, ret) => { ret.id = ret._id; delete ret._id; delete ret.__v; } }
+  }
+);
+```
+
+### Indexes
+- Add `unique: true` and `index: true` for fields used in lookups
+- Always index `firebase_uid` for user-related entities
+
+## Common Gotchas
+
+1. **Always use `toJSON()`** when returning Mongoose documents
+2. **Never skip validation** - always use `validate()` middleware
+3. **Protected routes** need `auth_middleware` before other middleware
+4. **Check uniqueness** in service layer before creating/updating
+5. **Use `authenticated_request`** type for routes with `auth_middleware`
+
+## File Locations Quick Reference
+- Types: `src/types/index.ts`
+- Error class: `src/utils/api_error.ts`
+- Response helpers: `src/utils/api_response.ts`
+- Env config: `src/config/env.ts`
+- DB connection: `src/config/database.ts`
+- Firebase setup: `src/config/firebase.ts`

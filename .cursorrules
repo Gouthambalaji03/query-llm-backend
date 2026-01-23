@@ -1,0 +1,131 @@
+# Query LLM Backend - Cursor Rules
+
+## Project Overview
+This is a Node.js/Express API server with TypeScript, MongoDB, Firebase Auth, and Zod validation.
+
+## Tech Stack
+- Runtime: Node.js with TypeScript
+- Framework: Express.js
+- Database: MongoDB with Mongoose ODM
+- Authentication: Firebase Admin SDK
+- Validation: Zod
+- Package Manager: npm
+
+## Naming Conventions (CRITICAL - Always Use snake_case)
+
+### Files
+- All files use snake_case: `user_controller.ts`, `auth_middleware.ts`, `api_response.ts`
+- Model files: `{entity}_model.ts`
+- Schema files: `{entity}_schema.ts`
+- Controller files: `{entity}_controller.ts`
+- Service files: `{entity}_service.ts`
+- Route files: `{entity}_routes.ts`
+
+### Code
+- Variables: `snake_case` - `user_data`, `is_valid`, `auth_token`
+- Functions: `snake_case` - `get_user_by_id()`, `create_user()`, `validate_input()`
+- Constants: `SCREAMING_SNAKE_CASE` - `MAX_PAGE_SIZE`, `DEFAULT_LIMIT`
+- Interfaces/Types: `snake_case` - `user_document`, `api_response`, `authenticated_request`
+- Database fields: `snake_case` - `firebase_uid`, `created_at`, `updated_at`
+
+### API Endpoints
+- Use kebab-case for multi-word paths: `/api/users/:user_id`
+- Always prefix with `/api`
+
+## Project Structure
+```
+src/
+├── config/          # Environment, database, firebase setup
+├── controllers/     # Request handlers (thin, delegate to services)
+├── middlewares/     # Auth, validation, error handling
+├── models/          # Mongoose schemas and models
+├── routes/          # Express route definitions
+├── schemas/         # Zod validation schemas
+├── services/        # Business logic layer
+├── types/           # TypeScript interfaces
+├── utils/           # Helper functions (api_response, api_error)
+└── app.ts           # Express app entry point
+```
+
+## Code Patterns
+
+### Controller Pattern
+```typescript
+export const get_user = async (
+  req: authenticated_request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { user_id } = req.params;
+    const user = await user_service.get_user_by_id(user_id);
+    send_success(res, user.toJSON());
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+### Zod Schema Pattern
+```typescript
+export const create_entity_schema = z.object({
+  body: z.object({
+    field_name: z.string().min(1).max(100),
+  }),
+  params: z.object({
+    entity_id: z.string().min(1),
+  }),
+});
+```
+
+### Service Pattern
+```typescript
+export const create_entity = async (input: create_input): Promise<entity_document> => {
+  // Business logic here
+  const entity = new entity_model(input);
+  await entity.save();
+  return entity;
+};
+```
+
+### Error Handling
+- Use `api_error` class for all errors: `throw api_error.not_found('User not found')`
+- Available methods: `bad_request`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `validation_error`, `internal_error`
+
+### API Response Format
+```typescript
+// Success
+{ success: true, data: {...}, message?: "..." }
+
+// Error
+{ success: false, error: { code: "...", message: "...", details?: [...] } }
+```
+
+## Best Practices
+
+### Do
+- Always validate input with Zod schemas before controller logic
+- Use service layer for all business logic
+- Use `authenticated_request` type for protected routes
+- Return proper HTTP status codes (200, 201, 204, 400, 401, 404, 409, 422, 500)
+- Add indexes to frequently queried MongoDB fields
+- Use `toJSON()` when returning Mongoose documents
+
+### Don't
+- Don't use camelCase for variables, functions, or files
+- Don't put business logic in controllers
+- Don't skip validation middleware
+- Don't return raw Mongoose documents (use toJSON)
+- Don't hardcode configuration values
+
+## Adding New Features
+
+1. Create model in `src/models/{entity}_model.ts`
+2. Create Zod schemas in `src/schemas/{entity}_schema.ts`
+3. Create service in `src/services/{entity}_service.ts`
+4. Create controller in `src/controllers/{entity}_controller.ts`
+5. Create routes in `src/routes/{entity}_routes.ts`
+6. Register routes in `src/routes/index.ts`
+
+## Environment Variables
+Required variables are defined and validated in `src/config/env.ts` using Zod.
