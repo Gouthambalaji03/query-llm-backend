@@ -1,7 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
-import { api_error } from '../utils/api_error';
-import { send_error } from '../utils/api_response';
-import { is_production } from '../config/env';
+import { api_error } from '@/utils/api_error';
+import { is_production } from '@/config/env';
+
+
+export const send_error = (res: Response, code: string, message: string, status_code: number, details?: unknown): Response => {
+  return res.status(status_code).json({
+    success: false,
+    error: {
+      code,
+      message,
+      details,
+    },
+  });
+};
 
 export const error_middleware = (
   error: Error,

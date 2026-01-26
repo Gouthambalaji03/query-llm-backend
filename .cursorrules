@@ -8,124 +8,265 @@ This is a Node.js/Express API server with TypeScript, MongoDB, Firebase Auth, an
 - Framework: Express.js
 - Database: MongoDB with Mongoose ODM
 - Authentication: Firebase Admin SDK
-- Validation: Zod
+- Validation: Zod (inline in controller files)
 - Package Manager: npm
+- Module Resolution: TypeScript path aliases (`@/` points to `src/`)
 
 ## Naming Conventions (CRITICAL - Always Use snake_case)
 
 ### Files
-- All files use snake_case: `user_controller.ts`, `auth_middleware.ts`, `api_response.ts`
+- All files use snake_case: `create_user.ts`, `auth_middleware.ts`, `async_handler.ts`
 - Model files: `{entity}_model.ts`
-- Schema files: `{entity}_schema.ts`
-- Controller files: `{entity}_controller.ts`
-- Service files: `{entity}_service.ts`
-- Route files: `{entity}_routes.ts`
+- Controller files: One function per file in `{entity}/` folder (e.g., `user/create_user.ts`)
+- Route files: `{entity}.ts` (e.g., `user.ts`, `conversation.ts`)
 
 ### Code
 - Variables: `snake_case` - `user_data`, `is_valid`, `auth_token`
 - Functions: `snake_case` - `get_user_by_id()`, `create_user()`, `validate_input()`
 - Constants: `SCREAMING_SNAKE_CASE` - `MAX_PAGE_SIZE`, `DEFAULT_LIMIT`
-- Interfaces/Types: `snake_case` - `user_document`, `api_response`, `authenticated_request`
-- Database fields: `snake_case` - `firebase_uid`, `created_at`, `updated_at`
+- Interfaces/Types: `snake_case` - `user_document`, `api_response`
+- Database fields: `snake_case` - `email`, `created_at`, `updated_at`
 
 ### API Endpoints
 - Use kebab-case for multi-word paths: `/api/users/:user_id`
 - Always prefix with `/api`
+- Route structure: `/api/{entity}` mapped directly in app.ts
 
 ## Project Structure
 ```
 src/
-├── config/          # Environment, database, firebase setup
-├── controllers/     # Request handlers (thin, delegate to services)
-├── middlewares/     # Auth, validation, error handling
-├── models/          # Mongoose schemas and models
-├── routes/          # Express route definitions
-├── schemas/         # Zod validation schemas
-├── services/        # Business logic layer
-├── types/           # TypeScript interfaces
-├── utils/           # Helper functions (api_response, api_error)
-└── app.ts           # Express app entry point
+├── config/              # Environment, database, firebase setup
+├── controllers/         # Request handlers organized by entity
+│   ├── user/            # Each entity has its own folder
+│   │   ├── create_user.ts
+│   │   ├── get_user_by_id.ts
+│   │   └── ...
+│   └── conversation/
+│       ├── create_conversation.ts
+│       └── ...
+├── middlewares/         # Auth, error handling
+├── models/              # Mongoose schemas and models
+│   └── mg_db.ts         # Central export for all models
+├── routes/              # Express route definitions (one per entity)
+│   ├── user.ts
+│   ├── auth.ts
+│   └── conversation.ts
+├── types/               # TypeScript interfaces and type definitions
+├── utils/               # Helper functions (async_handler, api_error)
+└── app.ts               # Express app entry point
 ```
 
 ## Code Patterns
 
-### Controller Pattern
+### Controller Pattern (One File Per Function)
+Each controller action is in its own file with inline Zod validation:
+
 ```typescript
-export const get_user = async (
-  req: authenticated_request,
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { mg_db } from '@/models/mg_db';
+import { api_error } from '@/utils/api_error';
+import { async_handler } from '@/utils/async_handler';
+
+export type create_entity_body = z.infer<typeof create_entity_body_schema>;
+
+export const create_entity = async_handler(async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const body = create_entity_body_schema.parse(req.body);
+  const user_id = req.user!._id;
+
+  const entity = await mg_db.entity_model.create({
+    user_id,
+    ...body,
+  });
+
+  res.status(201).json({
+    success: true,
+    data: entity.toJSON(),
+    message: 'Entity created successfully',
+  });
+});
+
+export const create_entity_body_schema = z.object({
+  field_name: z.string().min(1).max(100).trim(),
+});
+```
+
+### Alternative Pattern Without async_handler
+```typescript
+export const get_entity = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { user_id } = req.params;
-    const user = await user_service.get_user_by_id(user_id);
-    send_success(res, user.toJSON());
+    const { entity_id } = req.params;
+    const entity = await mg_db.entity_model.findById(entity_id);
+    
+    if (!entity) {
+      throw api_error.not_found('Entity not found');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: entity.toJSON(),
+    });
   } catch (error) {
     next(error);
   }
 };
 ```
 
-### Zod Schema Pattern
-```typescript
-export const create_entity_schema = z.object({
-  body: z.object({
-    field_name: z.string().min(1).max(100),
-  }),
-  params: z.object({
-    entity_id: z.string().min(1),
-  }),
-});
-```
+### Database Access Pattern
+Always access models through `mg_db`:
 
-### Service Pattern
 ```typescript
-export const create_entity = async (input: create_input): Promise<entity_document> => {
-  // Business logic here
-  const entity = new entity_model(input);
-  await entity.save();
-  return entity;
-};
+import { mg_db } from '@/models/mg_db';
+
+// CORRECT
+const user = await mg_db.user_model.findById(user_id);
+const conversation = await mg_db.conversation_model.create(data);
+
+// WRONG - Don't import models directly
+import { user_model } from '@/models/user_model';
 ```
 
 ### Error Handling
 - Use `api_error` class for all errors: `throw api_error.not_found('User not found')`
 - Available methods: `bad_request`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `validation_error`, `internal_error`
+- Use `async_handler` wrapper or try-catch with `next(error)`
 
 ### API Response Format
 ```typescript
-// Success
-{ success: true, data: {...}, message?: "..." }
+// Success (201 Created)
+res.status(201).json({
+  success: true,
+  data: {...},
+  message: 'Resource created successfully'
+});
 
-// Error
+// Success (200 OK)
+res.status(200).json({
+  success: true,
+  data: {...}
+});
+
+// Success (204 No Content)
+res.status(204).send();
+
+// Error (handled by error_middleware)
 { success: false, error: { code: "...", message: "...", details?: [...] } }
 ```
 
 ## Best Practices
 
 ### Do
-- Always validate input with Zod schemas before controller logic
-- Use service layer for all business logic
-- Use `authenticated_request` type for protected routes
+- Always validate input with Zod schemas inline in controller files
+- Put business logic directly in controllers (NO separate service layer)
+- Use `Request` type for all routes (auth_middleware adds `req.user`)
+- Access authenticated user via `req.user!._id` or `req.user!.email`
+- Use TypeScript path aliases: `@/models/`, `@/utils/`, etc.
 - Return proper HTTP status codes (200, 201, 204, 400, 401, 404, 409, 422, 500)
 - Add indexes to frequently queried MongoDB fields
 - Use `toJSON()` when returning Mongoose documents
+- Access all models through `mg_db` (e.g., `mg_db.user_model`)
+- Export Zod schema alongside the controller function in the same file
+- Use `async_handler` wrapper for cleaner error handling
 
 ### Don't
 - Don't use camelCase for variables, functions, or files
-- Don't put business logic in controllers
-- Don't skip validation middleware
+- Don't create separate service layer files
+- Don't use `authenticated_request` type (use `Request` and augment globally)
+- Don't create separate schema files (inline Zod in controllers)
 - Don't return raw Mongoose documents (use toJSON)
 - Don't hardcode configuration values
+- Don't import models directly (use `mg_db`)
+
+## Authentication Pattern
+
+The `auth_middleware` verifies Firebase token and attaches the full user document:
+
+```typescript
+import { Request } from 'express';
+
+// In controller
+export const some_action = async (req: Request, res: Response) => {
+  const user_id = req.user!._id;
+  const email = req.user!.email;
+  // ...
+};
+```
+
+Global type augmentation in `src/types/index.ts`:
+
+```typescript
+declare global {
+  namespace Express {
+    interface Request {
+      user?: user_document;
+    }
+  }
+}
+```
 
 ## Adding New Features
 
 1. Create model in `src/models/{entity}_model.ts`
-2. Create Zod schemas in `src/schemas/{entity}_schema.ts`
-3. Create service in `src/services/{entity}_service.ts`
-4. Create controller in `src/controllers/{entity}_controller.ts`
-5. Create routes in `src/routes/{entity}_routes.ts`
-6. Register routes in `src/routes/index.ts`
+2. Export model from `src/models/mg_db.ts`
+3. Create controller folder `src/controllers/{entity}/`
+4. Create controller files: `{entity}/create_{entity}.ts`, `{entity}/get_{entity}.ts`, etc.
+   - Include Zod schemas inline in each controller file
+   - Export both the handler function and the schema
+5. Create route file `src/routes/{entity}.ts`
+   - Import all controller functions
+   - Add Swagger/OpenAPI documentation comments
+6. Register routes in `src/app.ts`: `app.use('/api/{entity}', {entity}_routes)`
+
+## Import Aliases
+Always use TypeScript path aliases for imports:
+
+```typescript
+// CORRECT
+import { mg_db } from '@/models/mg_db';
+import { api_error } from '@/utils/api_error';
+import { async_handler } from '@/utils/async_handler';
+import { auth_middleware } from '@/middlewares/auth_middleware';
+
+// WRONG
+import { mg_db } from '../models/mg_db';
+import { api_error } from '../../utils/api_error';
+```
 
 ## Environment Variables
 Required variables are defined and validated in `src/config/env.ts` using Zod.
+
+## Key Architectural Changes
+
+### From Old to New Pattern:
+
+**OLD (Deprecated):**
+- Separate service layer (`user_service.ts`)
+- Separate schema files (`user_schema.ts`)
+- Monolithic controllers (`user_controller.ts` with all CRUD)
+- Import: `import { user_model } from '../models/user_model'`
+- Type: `authenticated_request` extends `Request`
+- Routes registered via `routes/index.ts`
+
+**NEW (Current):**
+- No service layer (business logic in controllers)
+- Inline Zod schemas (in controller files)
+- One controller per action (`user/create_user.ts`)
+- Import: `import { mg_db } from '@/models/mg_db'`
+- Type: `Request` with global augmentation for `user`
+- Routes registered directly in `app.ts`
+- Use `async_handler` wrapper for cleaner async error handling
+
+## Message Storage Pattern
+
+For conversation messages, use two separate collections:
+1. `user_context_messages` - UI-optimized messages for frontend display
+2. `agent_context_messages` - AI SDK-compatible messages for LLM context
+
+Both reference the same `conversation_id` but store different formats.

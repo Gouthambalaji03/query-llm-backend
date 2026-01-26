@@ -1,52 +1,15 @@
 import { Router } from 'express';
-import * as user_controller from '../controllers/user_controller';
-import { auth_middleware } from '../middlewares/auth_middleware';
-import { validate } from '../middlewares/validate_middleware';
-import {
-  create_user_schema,
-  get_user_schema,
-  update_user_schema,
-  delete_user_schema,
-  list_users_schema,
-} from '../schemas/user_schema';
+import { auth_middleware } from '@/middlewares/auth_middleware';
+import { create_user } from '@/controllers/user/create_user';
+import { get_all_users } from '@/controllers/user/get_all_users';
+import { get_user_by_id } from '@/controllers/user/get_user_by_id';
+import { update_user } from '@/controllers/user/update_user';
+import { delete_user } from '@/controllers/user/delete_user';
 
 const router = Router();
 
 // All routes require authentication
 router.use(auth_middleware);
-
-/**
- * @swagger
- * /api/users/me:
- *   get:
- *     summary: Get current user profile
- *     description: Returns the profile of the currently authenticated user based on Firebase UID
- *     tags: [Users]
- *     security:
- *       - bearer_auth: []
- *     responses:
- *       200:
- *         description: User profile found or null if not registered
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/user'
- *                 message:
- *                   type: string
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/api_error_response'
- */
-router.get('/me', user_controller.get_current_user);
 
 /**
  * @swagger
@@ -98,7 +61,7 @@ router.get('/me', user_controller.get_current_user);
  *             schema:
  *               $ref: '#/components/schemas/api_error_response'
  */
-router.post('/', validate(create_user_schema), user_controller.create_user);
+router.post('/', create_user);
 
 /**
  * @swagger
@@ -136,7 +99,7 @@ router.post('/', validate(create_user_schema), user_controller.create_user);
  *             schema:
  *               $ref: '#/components/schemas/api_error_response'
  */
-router.get('/', validate(list_users_schema), user_controller.list_users);
+router.get('/', get_all_users);
 
 /**
  * @swagger
@@ -180,7 +143,7 @@ router.get('/', validate(list_users_schema), user_controller.list_users);
  *             schema:
  *               $ref: '#/components/schemas/api_error_response'
  */
-router.get('/:user_id', validate(get_user_schema), user_controller.get_user);
+router.get('/:user_id', get_user_by_id);
 
 /**
  * @swagger
@@ -245,7 +208,7 @@ router.get('/:user_id', validate(get_user_schema), user_controller.get_user);
  *             schema:
  *               $ref: '#/components/schemas/api_error_response'
  */
-router.put('/:user_id', validate(update_user_schema), user_controller.update_user);
+router.put('/:user_id', update_user);
 
 /**
  * @swagger
@@ -279,6 +242,6 @@ router.put('/:user_id', validate(update_user_schema), user_controller.update_use
  *             schema:
  *               $ref: '#/components/schemas/api_error_response'
  */
-router.delete('/:user_id', validate(delete_user_schema), user_controller.delete_user);
+router.delete('/:user_id', delete_user);
 
 export default router;

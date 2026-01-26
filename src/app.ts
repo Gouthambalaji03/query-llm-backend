@@ -2,11 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swagger_ui from 'swagger-ui-express';
-import { env } from './config/env';
-import { connect_database } from './config/database';
-import { swagger_spec } from './config/swagger';
-import routes from './routes';
-import { error_middleware, not_found_middleware } from './middlewares/error_middleware';
+import { env } from '@/config/env';
+import { connect_database } from '@/config/database';
+import { swagger_spec } from '@/config/swagger';
+import user_routes from '@/routes/user';
+import auth_routes from '@/routes/auth';
+import conversation_routes from '@/routes/conversation';
+import { error_middleware, not_found_middleware } from '@/middlewares/error_middleware';
 
 const app = express();
 
@@ -29,7 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api-docs', swagger_ui.serve, swagger_ui.setup(swagger_spec));
 
 // API routes
-app.use('/api', routes);
+app.use('/api/auth', auth_routes);
+app.use('/api/users', user_routes);
+app.use('/api/conversations', conversation_routes);
 
 // 404 handler
 app.use(not_found_middleware);
