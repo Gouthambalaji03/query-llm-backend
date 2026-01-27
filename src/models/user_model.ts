@@ -4,6 +4,7 @@ export interface user_document extends Document {
   firebase_uid: string;
   name: string;
   email: string;
+  deleted_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -28,6 +29,11 @@ const user_schema = new Schema<user_document>(
       unique: true,
       lowercase: true,
       trim: true,
+      index: true,
+    },
+    deleted_at: {
+      type: Date,
+      default: null,
       index: true,
     },
   },
