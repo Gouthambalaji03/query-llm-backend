@@ -38,7 +38,6 @@ export const login = async_handler(async (
       const body = login_body_schema.parse(req.body);
 
       user = new mg_db.user_model({
-        firebase_uid: decoded_token.uid,
         name: body.name,
         email,
       });

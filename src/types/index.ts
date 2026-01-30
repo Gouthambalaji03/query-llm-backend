@@ -41,7 +41,6 @@ export interface paginated_response<T> {
 
 export interface user_data {
   id: string;
-  firebase_uid: string;
   name: string;
   email: string;
   created_at: Date;
