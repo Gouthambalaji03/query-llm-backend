@@ -5,6 +5,7 @@ import { update_conversation } from '@/controllers/conversation/update_conversat
 import { get_conversation_by_id } from '@/controllers/conversation/get_conversation_by_id';
 import { get_all_conversations } from '@/controllers/conversation/get_all_conversations';
 import { delete_conversation } from '@/controllers/conversation/delete_conversation';
+import { add_message } from '@/controllers/conversation/add_message';
 
 const router = Router();
 
@@ -103,6 +104,49 @@ router.get('/', get_all_conversations);
  *         description: Unauthorized
  */
 router.get('/:conversation_id', get_conversation_by_id);
+
+/**
+ * @swagger
+ * /api/conversations/{conversation_id}/messages:
+ *   post:
+ *     summary: Add a message to a conversation
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversation_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *               - content
+ *             properties:
+ *               id:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [user, assistant]
+ *               content:
+ *                 type: string
+ *               parts:
+ *                 type: array
+ *     responses:
+ *       201:
+ *         description: Message added successfully
+ *       404:
+ *         description: Conversation not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/:conversation_id/messages', add_message);
 
 /**
  * @swagger

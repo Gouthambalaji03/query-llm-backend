@@ -30,6 +30,18 @@ app.use(express.urlencoded({ extended: true }));
 // Swagger documentation
 app.use('/api-docs', swagger_ui.serve, swagger_ui.setup(swagger_spec));
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: env.NODE_ENV,
+    },
+  });
+});
+
 // API routes
 app.use('/api/auth', auth_routes);
 app.use('/api/users', user_routes);
