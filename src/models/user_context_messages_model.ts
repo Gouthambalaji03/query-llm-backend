@@ -1,40 +1,29 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-// Sub-schemas for UI message parts
-const ui_text_part_schema = new Schema(
+// Sub-schema for UI message parts
+const ui_part_schema = new Schema(
   {
     type: {
       type: String,
-      enum: ['text'],
+      enum: ['text', 'tool-invocation'],
       required: true,
     },
     text: {
       type: String,
-      required: true,
-    },
-  },
-  { _id: false }
-);
-
-const ui_tool_invocation_part_schema = new Schema(
-  {
-    type: {
-      type: String,
-      enum: ['tool-invocation'],
-      required: true,
+      default: undefined,
     },
     toolCallId: {
       type: String,
-      required: true,
+      default: undefined,
     },
     toolName: {
       type: String,
-      required: true,
+      default: undefined,
     },
     state: {
       type: String,
       enum: ['call', 'result', 'partial-call'],
-      required: true,
+      default: undefined,
     },
     args: {
       type: Schema.Types.Mixed,
@@ -48,8 +37,8 @@ const ui_tool_invocation_part_schema = new Schema(
   { _id: false }
 );
 
-// UI User Message schema
-const ui_user_message_schema = new Schema(
+// UI Message schema
+const ui_message_schema = new Schema(
   {
     id: {
       type: String,
@@ -57,39 +46,16 @@ const ui_user_message_schema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user'],
+      enum: ['user', 'assistant'],
       required: true,
     },
     content: {
       type: String,
-      required: true,
-    },
-    created_at: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  { _id: false }
-);
-
-// UI Assistant Message schema
-const ui_assistant_message_schema = new Schema(
-  {
-    id: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ['assistant'],
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
+      required: false,  // Allow empty content for tool-only messages
+      default: '',
     },
     parts: {
-      type: [ui_text_part_schema, ui_tool_invocation_part_schema],
+      type: [ui_part_schema],
       default: [],
     },
     created_at: {
@@ -132,7 +98,7 @@ const user_context_messages_schema = new Schema(
       index: true,
     },
     content: {
-      type: [ui_user_message_schema, ui_assistant_message_schema],
+      type: [ui_message_schema],
       default: [],
     },
   },

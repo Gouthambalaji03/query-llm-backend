@@ -3,6 +3,9 @@
 ## Project Overview
 This is a Node.js/Express API server with TypeScript, MongoDB, Firebase Auth, and Zod validation.
 
+## Cross-Repo Links
+- Root index: `AGENTS.md`
+
 ## Tech Stack
 - Runtime: Node.js with TypeScript
 - Framework: Express.js
@@ -84,7 +87,6 @@ export const create_entity = async_handler(async (
 
   res.status(201).json({
     success: true,
-    data: entity.toJSON(),
     message: 'Entity created successfully',
   });
 });
@@ -126,7 +128,7 @@ Always access models through `mg_db`:
 import { mg_db } from '@/models/mg_db';
 
 // CORRECT
-const user = await mg_db.user_model.findById(user_id);
+const user = await mg_db.user_model.findById(user_id).lean();
 const conversation = await mg_db.conversation_model.create(data);
 
 // WRONG - Don't import models directly
@@ -143,14 +145,13 @@ import { user_model } from '@/models/user_model';
 // Success (201 Created)
 res.status(201).json({
   success: true,
-  data: {...},
   message: 'Resource created successfully'
 });
 
 // Success (200 OK)
 res.status(200).json({
   success: true,
-  data: {...}
+  data: {...} // Only for read endpoints
 });
 
 // Success (204 No Content)
@@ -170,7 +171,7 @@ res.status(204).send();
 - Use TypeScript path aliases: `@/models/`, `@/utils/`, etc.
 - Return proper HTTP status codes (200, 201, 204, 400, 401, 404, 409, 422, 500)
 - Add indexes to frequently queried MongoDB fields
-- Use `toJSON()` when returning Mongoose documents
+- Use `.lean()` for reads and return plain objects
 - Access all models through `mg_db` (e.g., `mg_db.user_model`)
 - Export Zod schema alongside the controller function in the same file
 - Use `async_handler` wrapper for cleaner error handling
@@ -180,7 +181,7 @@ res.status(204).send();
 - Don't create separate service layer files
 - Don't use `authenticated_request` type (use `Request` and augment globally)
 - Don't create separate schema files (inline Zod in controllers)
-- Don't return raw Mongoose documents (use toJSON)
+- Don't use `toJSON()` in controllers
 - Don't hardcode configuration values
 - Don't import models directly (use `mg_db`)
 
@@ -198,6 +199,11 @@ export const some_action = async (req: Request, res: Response) => {
   // ...
 };
 ```
+
+## SOP Updates
+- Create/Update/Delete endpoints must not return `data` in the response.
+- `/api/auth/me` is removed; use `GET /api/users/:user_id`.
+- Message creation uses `PATCH /api/conversations/:conversation_id` with `message` payload.
 
 Global type augmentation in `src/types/index.ts`:
 

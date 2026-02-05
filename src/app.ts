@@ -8,6 +8,7 @@ import { swagger_spec } from '@/config/swagger';
 import user_routes from '@/routes/user';
 import auth_routes from '@/routes/auth';
 import conversation_routes from '@/routes/conversation';
+import { http_logger } from '@/middlewares/http_logger';
 import { error_middleware, not_found_middleware } from '@/middlewares/error_middleware';
 
 const app = express();
@@ -26,6 +27,9 @@ app.use(
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Request/response logging
+app.use(http_logger);
 
 // Swagger documentation
 app.use('/api-docs', swagger_ui.serve, swagger_ui.setup(swagger_spec));

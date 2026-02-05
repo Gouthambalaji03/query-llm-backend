@@ -11,18 +11,14 @@ export const login = async_handler(async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  console.log(`[LOGIN] Login attempt started...`);
-
   const authorization_header = req.headers.authorization;
 
   if (!authorization_header) {
-    console.log(`[LOGIN] FAILED - No authorization header`);
     throw api_error.unauthorized('Authorization header is missing');
   }
 
   const parts = authorization_header.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    console.log(`[LOGIN] FAILED - Invalid header format`);
     throw api_error.unauthorized('Invalid authorization header format. Use: Bearer <token>');
   }
 
@@ -33,13 +29,10 @@ export const login = async_handler(async (
 
     const email = decoded_token.email;
     if (!email) {
-      console.log(`[LOGIN] FAILED - Token missing email`);
       throw api_error.unauthorized('Token does not contain email');
     }
 
-    console.log(`[LOGIN] Verifying user: ${email}`);
-
-    let user = await mg_db.user_model.findOne({ email });
+    let user = await mg_db.user_model.findOne({ email }).lean();
     let is_new_user = false;
 
     if (!user) {
@@ -48,28 +41,29 @@ export const login = async_handler(async (
       // Use provided name or extract from email
       const name = body.name || email.split('@')[0];
 
-      user = new mg_db.user_model({
+      const new_user = new mg_db.user_model({
         name,
         email,
       });
 
-      await user.save();
+      await new_user.save();
       is_new_user = true;
-      console.log(`[LOGIN] NEW USER CREATED - ${email} (${user._id})`);
-    } else {
-      console.log(`[LOGIN] EXISTING USER - ${email} (${user._id})`);
+      user = await mg_db.user_model.findById(new_user._id).lean();
+    }
+
+    if (!user) {
+      throw api_error.not_found('User not found');
     }
 
     res.status(is_new_user ? 201 : 200).json({
       success: true,
-      data: user.toJSON(),
+      data: user,
       message: is_new_user ? 'User created successfully' : 'Login successful',
     });
   } catch (error) {
     if (error instanceof api_error || error instanceof z.ZodError) {
       throw error;
     }
-    console.log(`[LOGIN] FAILED - Invalid/expired token`);
     throw api_error.unauthorized('Invalid or expired token');
   }
 });

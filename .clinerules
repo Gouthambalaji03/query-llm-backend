@@ -3,6 +3,9 @@
 ## Project Context
 This is a Node.js/Express TypeScript API server using MongoDB, Firebase Auth, and Zod validation.
 
+## Cross-Repo Links
+- Root index: `AGENTS.md`
+
 ## Critical Conventions
 
 ### snake_case Everywhere
@@ -26,45 +29,25 @@ This is a Node.js/Express TypeScript API server using MongoDB, Firebase Auth, an
 ## Standard Patterns
 
 ### New Endpoint Checklist
-1. Add Zod schema in `src/schemas/`
-2. Add service function in `src/services/`
-3. Add controller function in `src/controllers/`
-4. Add route with `validate()` and `auth_middleware` in `src/routes/`
+1. Add Zod schema inline with the controller
+2. Add controller function in `src/controllers/`
+3. Add route with `auth_middleware` in `src/routes/`
 
 ### Zod Validation Template
 ```typescript
-export const {action}_{entity}_schema = z.object({
-  body: z.object({ /* fields */ }),
-  params: z.object({ /* url params */ }),
-  query: z.object({ /* query params */ }),
+export const {action}_{entity}_body_schema = z.object({
+  /* fields */
 });
 ```
 
 ### Controller Template
 ```typescript
-export const {action}_{entity} = async (
-  req: authenticated_request,
-  res: Response,
-  next: NextFunction
+export const {action}_{entity} = async_handler(async (
+  req: Request,
+  res: Response
 ): Promise<void> => {
-  try {
-    const result = await {entity}_service.{action}(/* params */);
-    send_success(res, result);
-  } catch (error) {
-    next(error);
-  }
-};
-```
-
-### Service Template
-```typescript
-export const {action}_{entity} = async (
-  /* params */
-): Promise<{entity}_document> => {
-  // Validate business rules
-  // Perform database operation
-  // Return result or throw api_error
-};
+  // validate, operate, respond
+});
 ```
 
 ### Route Template
@@ -72,7 +55,6 @@ export const {action}_{entity} = async (
 router.{method}(
   '/{path}',
   auth_middleware,
-  validate({action}_{entity}_schema),
   {entity}_controller.{action}_{entity}
 );
 ```
@@ -89,13 +71,7 @@ Use `api_error` static methods:
 - `api_error.internal_error(message?)` - 500
 
 ## API Response Helpers
-
-```typescript
-send_success(res, data, message?, status_code?)  // Default 200
-send_created(res, data, message?)                // 201
-send_no_content(res)                             // 204
-send_error(res, code, message, status_code, details?)
-```
+Use direct `res.status(...).json(...)` responses.
 
 ## Database Conventions
 
@@ -117,11 +93,16 @@ const {entity}_schema = new Schema<{entity}_document>(
 
 ## Common Gotchas
 
-1. **Always use `toJSON()`** when returning Mongoose documents
-2. **Never skip validation** - always use `validate()` middleware
+1. **Use `.lean()`** for reads and return plain objects
+2. **Never skip validation** - always use inline Zod
 3. **Protected routes** need `auth_middleware` before other middleware
-4. **Check uniqueness** in service layer before creating/updating
-5. **Use `authenticated_request`** type for routes with `auth_middleware`
+4. **Check uniqueness** before creating/updating
+5. **Do not use `toJSON()`** in controllers
+
+## SOP Updates
+- Create/Update/Delete endpoints must not return `data` in the response.
+- `/api/auth/me` is removed; use `GET /api/users/:user_id`.
+- Message creation uses `PATCH /api/conversations/:conversation_id` with `message` payload.
 
 ## File Locations Quick Reference
 - Types: `src/types/index.ts`

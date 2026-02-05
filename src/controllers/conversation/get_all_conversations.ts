@@ -11,9 +11,6 @@ export const get_all_conversations = async_handler(async (
 ): Promise<void> => {
   const query = get_all_conversations_query_schema.parse(req.query);
   const user_id = req.user!._id;
-  const user_email = req.user!.email;
-
-  console.log(`[GET_ALL_CONVERSATIONS] User: ${user_email} - Fetching conversations (status: ${query.status}, page: ${query.page})`);
 
   const page = parseInt(query.page);
   const limit = parseInt(query.limit);
@@ -41,8 +38,6 @@ export const get_all_conversations = async_handler(async (
   ]);
 
   const total_pages = Math.ceil(total / limit);
-
-  console.log(`[GET_ALL_CONVERSATIONS] SUCCESS - User: ${user_email} has ${total} conversations, returning ${conversations.length} (page ${page}/${total_pages})`);
 
   res.status(200).json({
     success: true,
