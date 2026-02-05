@@ -23,7 +23,7 @@ export const login = async_handler(async (
   }
 
   const token = parts[1];
-  
+
   try {
     const decoded_token = await firebase_auth.verifyIdToken(token);
 
@@ -32,20 +32,35 @@ export const login = async_handler(async (
       throw api_error.unauthorized('Token does not contain email');
     }
 
-    let user = await mg_db.user_model.findOne({ email });
+    let user = await mg_db.user_model.findOne({ email }).lean();
+    let is_new_user = false;
 
     if (!user) {
       const body = login_body_schema.parse(req.body);
 
-      user = new mg_db.user_model({
-        name: body.name,
+      // Use provided name or extract from email
+      const name = body.name || email.split('@')[0];
+
+      const new_user = new mg_db.user_model({
+        firebase_uid: decoded_token.uid,
+        name,
         email,
       });
 
-      await user.save();
+      await new_user.save();
+      is_new_user = true;
+      user = await mg_db.user_model.findById(new_user._id).lean();
     }
 
-    res.json({ user });
+    if (!user) {
+      throw api_error.not_found('User not found');
+    }
+
+    res.status(is_new_user ? 201 : 200).json({
+      success: true,
+      data: user,
+      message: is_new_user ? 'User created successfully' : 'Login successful',
+    });
   } catch (error) {
     if (error instanceof api_error || error instanceof z.ZodError) {
       throw error;

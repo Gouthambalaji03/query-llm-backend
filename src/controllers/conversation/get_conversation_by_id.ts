@@ -18,7 +18,7 @@ export const get_conversation_by_id = async_handler(async (
     conversation_id: params.conversation_id,
     user_id,
     deleted_at: null,
-  });
+  }).lean();
 
   if (!conversation) {
     throw api_error.not_found('Conversation not found');
@@ -27,17 +27,17 @@ export const get_conversation_by_id = async_handler(async (
   // Get user context messages
   const user_context = await mg_db.user_context_messages_model.findOne({
     conversation_id: conversation._id,
-  });
+  }).lean();
 
   // Get agent context messages
   const agent_context = await mg_db.agent_context_messages_model.findOne({
     conversation_id: conversation._id,
-  });
+  }).lean();
 
   res.status(200).json({
     success: true,
     data: {
-      conversation: conversation.toJSON(),
+      conversation,
       user_context_messages: user_context?.content || [],
       agent_context_messages: agent_context?.content || [],
     },

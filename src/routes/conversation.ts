@@ -5,6 +5,8 @@ import { update_conversation } from '@/controllers/conversation/update_conversat
 import { get_conversation_by_id } from '@/controllers/conversation/get_conversation_by_id';
 import { get_all_conversations } from '@/controllers/conversation/get_all_conversations';
 import { delete_conversation } from '@/controllers/conversation/delete_conversation';
+import { append_user_context_messages } from '@/controllers/conversation/append_user_context_messages';
+import { append_agent_context_messages } from '@/controllers/conversation/append_agent_context_messages';
 
 const router = Router();
 
@@ -132,6 +134,18 @@ router.get('/:conversation_id', get_conversation_by_id);
  *               status:
  *                 type: string
  *                 enum: [active, archived]
+ *               message:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: [user, assistant]
+ *                   content:
+ *                     type: string
+ *                   parts:
+ *                     type: array
  *     responses:
  *       200:
  *         description: Conversation updated successfully
@@ -141,6 +155,68 @@ router.get('/:conversation_id', get_conversation_by_id);
  *         description: Unauthorized
  */
 router.patch('/:conversation_id', update_conversation);
+
+/**
+ * @swagger
+ * /api/conversations/{conversation_id}/user-context/append:
+ *   post:
+ *     summary: Append user UI messages to user context
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversation_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               messages:
+ *                 type: array
+ *     responses:
+ *       200:
+ *         description: Messages appended successfully
+ *       404:
+ *         description: Conversation not found
+ */
+router.post('/:conversation_id/user-context/append', append_user_context_messages);
+
+/**
+ * @swagger
+ * /api/conversations/{conversation_id}/agent-context/append:
+ *   post:
+ *     summary: Append agent model messages to agent context
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversation_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               messages:
+ *                 type: array
+ *     responses:
+ *       200:
+ *         description: Messages appended successfully
+ *       404:
+ *         description: Conversation not found
+ */
+router.post('/:conversation_id/agent-context/append', append_agent_context_messages);
 
 /**
  * @swagger
