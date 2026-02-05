@@ -79,7 +79,6 @@ export const create_conversation = async_handler(async (
 
   res.status(201).json({
     success: true,
-    data: conversation.toJSON(),
     message: 'Conversation created successfully',
   });
 });

@@ -16,7 +16,10 @@ export const get_user_by_id = async_handler(async (
     throw api_error.not_found('User not found');
   }
 
-  res.json(user);
+  res.status(200).json({
+    success: true,
+    data: user,
+  });
 });
 
 export const get_user_by_id_params_schema = z.object({
