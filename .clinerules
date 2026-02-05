@@ -10,7 +10,7 @@ This is a Node.js/Express TypeScript API server using MongoDB, Firebase Auth, an
 - **Variables**: `user_data`, `is_authenticated`, `token_payload`
 - **Functions**: `get_user_by_id()`, `validate_request()`, `send_response()`
 - **Types/Interfaces**: `authenticated_request`, `api_response`, `user_document`
-- **Database fields**: `firebase_uid`, `created_at`, `updated_at`
+- **Database fields**: `created_at`, `updated_at`
 - **Constants**: `MAX_PAGE_SIZE`, `DEFAULT_TIMEOUT`
 
 ### Layer Responsibilities
@@ -114,7 +114,6 @@ const {entity}_schema = new Schema<{entity}_document>(
 
 ### Indexes
 - Add `unique: true` and `index: true` for fields used in lookups
-- Always index `firebase_uid` for user-related entities
 
 ## Common Gotchas
 

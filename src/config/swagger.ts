@@ -36,11 +36,6 @@ const options: swaggerJsdoc.Options = {
               description: 'User ID',
               example: '507f1f77bcf86cd799439011',
             },
-            firebase_uid: {
-              type: 'string',
-              description: 'Firebase user ID',
-              example: 'abc123xyz',
-            },
             name: {
               type: 'string',
               description: 'User name',
